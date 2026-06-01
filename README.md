@@ -1,6 +1,6 @@
 # DistComputeSys2
 
-A System2 overlay that injects distributed computing guidance into the System2 agent pipeline. Composed from three pillars:
+A [System2](https://github.com/jamesnordlund/System2) overlay that injects distributed computing guidance into the System2 agent pipeline. Composed from three pillars:
 
 1. **Domain-Driven Design (DDD)** — where to draw boundaries
 2. **Pike's 5 Rules of Programming** — whether complexity is justified
@@ -14,7 +14,7 @@ This overlay corrects both failure modes by injecting guidance at every stage of
 
 ## Prerequisites
 
-This is an **overlay** — it patches an existing [System2](https://github.com/jamesnordlund/System2) installation. System2 must be installed and initialized before this overlay can be applied.
+This is an **overlay** — it patches an existing [System2](https://github.com/jamesnordlund/System2) installation. System2 must be installed first.
 
 ### What is System2?
 
@@ -31,6 +31,7 @@ It installs 13 specialized subagents (spec-coordinator, requirements-engineer, d
 ```
 /plugin marketplace add jamesnordlund/System2
 /plugin install system2@jamesnordlund-system2
+/reload-plugins
 ```
 
 Then initialize it in your target project:
@@ -39,60 +40,50 @@ Then initialize it in your target project:
 /system2:init
 ```
 
-This writes the orchestrator instructions to `CLAUDE.md`. After initialization you should have:
-
-```
-your-project/
-├── CLAUDE.md                          # Orchestrator persona (System2 writes this)
-└── plugin/                            # Or .claude/ depending on project config
-    ├── .claude-plugin/plugin.json     # System2 plugin manifest
-    ├── agents/                        # 13 agent persona .md files
-    │   ├── design-architect.md
-    │   ├── requirements-engineer.md
-    │   ├── code-reviewer.md
-    │   ├── executor.md
-    │   ├── spec-coordinator.md
-    │   └── ... (8 more)
-    ├── hooks/                         # Validation scripts
-    ├── allowlists/                    # Per-agent file restrictions
-    └── skills/
-        └── init/SKILL.md             # The /system2:init skill
-```
-
-**Verify System2 is working:** run `/system2:init --force` or check that agent files exist:
-```bash
-ls plugin/agents/design-architect.md  # or .claude/agents/design-architect.md
-```
-
 ---
 
 ## Installation
 
-### Option A: Plugin Install + Skill (Recommended)
-
-Register this overlay as a Claude Code plugin alongside System2:
+### Step 1: Add the marketplace
 
 ```
 /plugin marketplace add kwehden/DistComputeSys2
+```
+
+This registers the GitHub repo as a plugin source. Claude Code clones it and reads `.claude-plugin/marketplace.json` to discover available plugins.
+
+### Step 2: Install the plugin
+
+```
 /plugin install distcompute@kwehden-DistComputeSys2
 ```
 
-This installs the overlay's skill and patch files. The plugin manifest (`plugin/.claude-plugin/plugin.json`) declares `"requires": ["system2"]` — Claude Code will warn if System2 is not present.
+This installs the skill and patch files to `~/.claude/plugins/cache/kwehden-DistComputeSys2/distcompute/1.0.0/`.
 
-After installation, the `/distcompute:apply` skill becomes available. Run it in your project to apply the patches:
+### Step 3: Reload plugins
+
+```
+/reload-plugins
+```
+
+**This step is required.** Claude Code caches the plugin registry at session start. After installing, you must reload for the new skill to become available. You'll see output like:
+
+```
+Reloaded: 4 plugins · 0 skills · 21 agents · 0 hooks · 1 plugin MCP server · 0 plugin LSP servers
+```
+
+### Step 4: Apply the overlay
+
+Navigate to your System2-enabled project and run:
 
 ```
 /distcompute:apply
 ```
 
-**What the skill does:**
-1. Locates your project's CLAUDE.md and agent persona files (checks both `plugin/agents/` and `.claude/agents/`).
-2. Reads each patch from its bundled `plugin/patches/` directory.
-3. For each patch, checks whether it's already been applied (sentinel text grep).
-4. If not already present, injects the patch content at the documented insertion point.
-5. Reports what was applied vs. skipped.
+The skill locates your System2 agent files (checks the global plugin cache, `plugin/agents/`, and `.claude/agents/`), reads each patch, checks for sentinel text to avoid duplication, and injects the content at the documented insertion points.
 
-**Skill options:**
+**Options:**
+
 | Flag | Effect |
 |------|--------|
 | `--dry-run` | Show what would change without writing files |
@@ -100,83 +91,38 @@ After installation, the `/distcompute:apply` skill becomes available. Run it in 
 | `--phase 2` | Apply only Phase 2 (spec-coordinator + requirements-engineer) |
 | `--phase 3` | Apply only Phase 3 (code-reviewer + executor) |
 
-The skill is **idempotent** — running it multiple times won't duplicate content.
+The skill is **idempotent** — running it again skips already-applied patches.
 
-### Option B: Manual Patch Application
+### What gets patched
 
-If you prefer manual control or want to customize before applying:
-
-1. Clone or download this repo
-2. Open each file in `plugin/patches/`
-3. Each patch file documents:
-   - **Target:** which System2 file to modify
-   - **Action:** which section to find, where to insert
-   - **Sentinel:** text to grep for to check if already applied
-4. Copy the patch content into the target file at the specified location
-
-### Option C: Clone and Reference
-
-```bash
-git clone https://github.com/kwehden/DistComputeSys2.git
-```
-
-Keep it as a reference alongside your projects. Apply patches manually or symlink the skill directory into your project's plugin tree.
-
----
-
-### How the Skill Gets Registered
-
-When Claude Code loads a plugin, it discovers skills by scanning the path declared in `plugin.json`:
-
-```json
-{
-  "name": "distcompute",
-  "skills": ["./skills/"]
-}
-```
-
-Claude Code reads `plugin/skills/apply/SKILL.md`, which declares:
-
-```yaml
----
-name: apply
-description: Apply the DistComputeSys2 overlay to the current project's System2 installation.
----
-```
-
-This registers as `/distcompute:apply` (plugin namespace `:` skill name). The skill's Markdown body contains the full procedure that Claude executes when invoked.
-
----
+| Phase | Target | What's Added |
+|-------|--------|-------------|
+| 1a | CLAUDE.md (orchestrator) | Three-pillar operating principles |
+| 1b | design-architect.md | DDD constraints, bounded context sections, alternatives template, simplicity budget |
+| 2a | spec-coordinator.md | Domain/scale assessment step, new context.md sections, style requirements |
+| 2b | requirements-engineer.md | DDD + distributed guardrails, consistency & domain boundaries section |
+| 3a | code-reviewer.md | DDD checklist, surface-area delta items, future-change probes |
+| 3b | executor.md | Domain-driven implementation discipline section |
 
 ### Verifying Installation
 
-After applying, confirm the overlay is active:
-
 ```bash
-# Orchestrator patch applied?
 grep "Domain-first boundaries" CLAUDE.md
-
-# Design-architect patch applied?
 grep "Bounded context identification" plugin/agents/design-architect.md
-
-# Requirements-engineer patch applied?
 grep "Domain-Driven Design guardrails" plugin/agents/requirements-engineer.md
-
-# Code-reviewer patch applied?
 grep "Domain model integrity" plugin/agents/code-reviewer.md
-
-# Executor patch applied?
 grep "Domain-driven implementation discipline" plugin/agents/executor.md
-
-# Spec-coordinator patch applied?
 grep "Domain Model Sketch" plugin/agents/spec-coordinator.md
 ```
 
-All six should match. If any don't, re-run `/distcompute:apply` or check whether your agent files live in `.claude/agents/` instead of `plugin/agents/`.
+If agents live in the global plugin cache (no local `plugin/agents/`), check:
+```bash
+grep "Bounded context identification" ~/.claude/plugins/marketplaces/system2-marketplace/plugin/agents/design-architect.md
+```
 
 ---
 
-### Graduated Adoption
+## Graduated Adoption
 
 You don't have to apply everything at once:
 
@@ -194,18 +140,47 @@ You don't have to apply everything at once:
 /distcompute:apply --phase 3   # Add enforcement
 ```
 
+---
+
 ## How It Works
 
-The overlay modifies System2 agent personas to include distributed systems guidance at their natural decision points:
+### Plugin Structure
 
-| Agent | What Changes |
-|-------|-------------|
-| **Orchestrator** (CLAUDE.md) | Adds three-pillar operating principles |
-| **spec-coordinator** | Adds domain model sketch + scale intent to context.md |
-| **requirements-engineer** | Adds aggregate-scoped consistency, anti-proscriptive rules |
-| **design-architect** | Adds bounded context identification, context maps, scale-gated reactive properties |
-| **executor** | Adds aggregate discipline, boundary-scoped async |
-| **code-reviewer** | Adds DDD violation detection + scale-proportionality checks |
+```
+DistComputeSys2/
+├── .claude-plugin/
+│   └── marketplace.json        # Marketplace discovery (required for /plugin marketplace add)
+├── plugin/
+│   ├── .claude-plugin/
+│   │   └── plugin.json         # Plugin manifest (declares name, skills path)
+│   ├── patches/                # The injectable content
+│   │   ├── orchestrator.md
+│   │   ├── spec-coordinator.md
+│   │   ├── requirements-engineer.md
+│   │   ├── design-architect.md
+│   │   ├── code-reviewer.md
+│   │   └── executor.md
+│   └── skills/
+│       └── apply/
+│           └── SKILL.md        # The /distcompute:apply skill definition
+├── docs/
+│   ├── sources.md              # Full source material (Pike, Reactive, DDD)
+│   └── anti-bias-analysis.md   # Both failure modes + self-test indicators
+├── README.md
+└── LICENSE
+```
+
+### How Skill Registration Works
+
+1. `/plugin marketplace add kwehden/DistComputeSys2` clones the repo and reads `.claude-plugin/marketplace.json`, which declares a plugin named `distcompute` at source path `./plugin`.
+
+2. `/plugin install distcompute@kwehden-DistComputeSys2` copies `./plugin` to the cache and registers it in `~/.claude/plugins/installed_plugins.json`.
+
+3. `/reload-plugins` re-scans installed plugins. Claude Code reads `plugin.json` which declares `"skills": ["./skills/"]`, finds `skills/apply/SKILL.md`, and registers it as `/distcompute:apply`.
+
+4. When you invoke `/distcompute:apply`, Claude Code loads the SKILL.md and executes its instructions.
+
+---
 
 ## Three Pillars Composition
 
@@ -257,6 +232,10 @@ Reactive says: "Here is what the justified boundaries must do"
 - Single-process CLI tools or libraries with no integration boundaries
 - CRUD web apps with a single database and no external system integration
 - Teams < 2 people who will never operate more than one deployment unit
+
+## Author
+
+Karl Wehden — Karl@Wehden.com
 
 ## License
 
