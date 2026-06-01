@@ -1,0 +1,7 @@
+{
+  "name": "distcompute",
+  "version": "1.0.0",
+  "description": "System2 overlay: DDD + Pike's Rules + Reactive Manifesto guidance for distributed systems architecture",
+  "homepage": "https://github.com/kwehden/DistComputeSys2",
+  "requires": ["system2"]
+}
