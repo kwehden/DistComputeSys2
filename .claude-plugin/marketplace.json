@@ -1,0 +1,34 @@
+{
+  "name": "kwehden-DistComputeSys2",
+  "owner": {
+    "name": "Karl Wehden",
+    "url": "https://github.com/kwehden"
+  },
+  "metadata": {
+    "description": "System2 overlay for distributed systems architecture guidance (DDD + Pike + Reactive)"
+  },
+  "plugins": [
+    {
+      "name": "distcompute",
+      "version": "1.0.0",
+      "source": "./plugin",
+      "description": "System2 overlay: DDD + Pike's Rules + Reactive Manifesto guidance for distributed systems architecture. Patches System2 agent personas to correct transactional bias.",
+      "author": {
+        "name": "Karl Wehden"
+      },
+      "homepage": "https://github.com/kwehden/DistComputeSys2",
+      "repository": "https://github.com/kwehden/DistComputeSys2",
+      "license": "MIT",
+      "keywords": [
+        "distributed-systems",
+        "ddd",
+        "domain-driven-design",
+        "reactive",
+        "system2",
+        "overlay",
+        "architecture"
+      ],
+      "category": "workflow"
+    }
+  ]
+}
