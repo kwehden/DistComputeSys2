@@ -1,0 +1,13 @@
+{
+  "name": "distcompute",
+  "description": "System2 overlay: DDD + Pike's Rules + Reactive Manifesto guidance for distributed systems architecture. Patches System2 agent personas to correct transactional bias and prevent distributed-enthusiasm over-engineering.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Karl Wehden",
+    "url": "https://github.com/kwehden"
+  },
+  "repository": "https://github.com/kwehden/DistComputeSys2",
+  "license": "MIT",
+  "requires": ["system2"],
+  "skills": ["./skills/"]
+}
